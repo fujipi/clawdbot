@@ -1,0 +1,130 @@
+// ============================================================================
+// OpenClaw セキュリティ強化テンプレート設定
+// ============================================================================
+// 使い方: この内容を ~/.openclaw/openclaw.json にコピーし、
+//         "CHANGE-ME" の箇所を実際の値に書き換えてください。
+//
+// 設計方針:
+//   - 最小権限の原則（必要最低限のツールのみ有効）
+//   - 全セッションのサンドボックス化
+//   - ローカルバインド（外部ネットワークからのアクセス遮断）
+//   - チャネルごとの許可リスト制御
+// ============================================================================
+{
+  // ── ゲートウェイ（サーバー）の保護 ──────────────────────────
+  "gateway": {
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      // 32文字以上のランダムな文字列に置き換えてください
+      // 生成例: openssl rand -base64 48
+      "token": "CHANGE-ME-use-openssl-rand-base64-48"
+    },
+    // コントロールUI（Web管理画面）の保護
+    "controlUi": {
+      // デバイス認証を無効にしない（デフォルトのまま）
+      // "dangerouslyDisableDeviceAuth": false  ← 絶対に true にしないこと
+    }
+  },
+
+  // ── セッション管理 ──────────────────────────────────────────
+  "session": {
+    // ユーザーごと・チャネルごとに会話を完全分離
+    "dmScope": "per-channel-peer",
+    // セッションの自動リセット（情報漏洩リスクの軽減）
+    "reset": {
+      "direct": { "mode": "daily", "atHour": 0 },
+      "group": { "mode": "idle", "idleMinutes": 60 }
+    }
+  },
+
+  // ── ツール制限（エージェントにできることの制御）────────────
+  "tools": {
+    // メッセージングのみのプロファイル（最小限のツールセット）
+    "profile": "messaging",
+    // 以下のツールグループを明示的に禁止
+    "deny": [
+      "group:runtime",
+      "group:automation",
+      "sessions_spawn",
+      "sessions_send"
+    ],
+    // ファイル操作をワークスペース内に限定
+    "fs": {
+      "workspaceOnly": true
+    },
+    // シェルコマンド実行をデフォルト禁止
+    "exec": {
+      "security": "deny",
+      "ask": "always",
+      "applyPatch": {
+        "workspaceOnly": true
+      }
+    },
+    // 管理者権限エスカレーションを無効化
+    "elevated": {
+      "enabled": false
+    }
+  },
+
+  // ── エージェント設定 ────────────────────────────────────────
+  "agents": {
+    "defaults": {
+      // 全セッションをDockerサンドボックス内で実行
+      "sandbox": {
+        "mode": "all",
+        "scope": "agent",
+        "workspaceAccess": "ro",
+        "docker": {
+          // コンテナのセキュリティ強化
+          "readOnlyRoot": true,
+          "capDrop": ["ALL"],
+          "network": "none",
+          "pidsLimit": 256,
+          "memory": "512m"
+        }
+      }
+    },
+    // AI社員エージェントの定義（例）
+    "list": [
+      {
+        "id": "company-assistant",
+        "name": "社員アシスタント",
+        "default": true,
+        // スキルを限定（空配列 = スキルなし）
+        "skills": [],
+        "identity": {
+          "name": "アシスタント",
+          "instructions": "あなたは会社のAIアシスタントです。丁寧なビジネス日本語で対応してください。機密情報の取り扱いに細心の注意を払い、不明な点は正直に伝えてください。"
+        }
+      }
+    ]
+  },
+
+  // ── プラグイン制限 ──────────────────────────────────────────
+  // 明示的に許可したプラグインのみ有効にする
+  "plugins": {
+    "allow": []
+  },
+
+  // ── チャネル設定例（必要なチャネルのみ有効にする）────────
+  // 以下は Slack の例です。使用するチャネルに応じて設定してください。
+  "channels": {
+    "slack": {
+      // DMは許可リストに載っている人のみ
+      "dmPolicy": "allowlist",
+      // 許可する送信者のSlack IDを列挙
+      // "allowFrom": ["U01ABCDEF12", "U02GHIJKL34"],
+
+      // グループ（チャネル）はメンション必須
+      "groupPolicy": "allowlist",
+      "groups": {
+        // 許可するチャネルIDと設定
+        // "C01ABCDEF12": { "requireMention": true },
+        // 全グループにメンション必須をデフォルト適用
+        "*": { "requireMention": true }
+      }
+    }
+  }
+}
