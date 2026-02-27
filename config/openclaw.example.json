@@ -1,0 +1,112 @@
+{
+  "_comment": "OpenClaw 設定ファイル - Slack + LINE 対応版。~/.openclaw/openclaw.json にコピーして使用。CHANGE-ME を実際の値に置き換えてください。",
+
+  "gateway": {
+    "mode": "local",
+    "bind": "loopback",
+    "port": 18789,
+    "auth": {
+      "mode": "token",
+      "token": "CHANGE-ME-use-openssl-rand-base64-48"
+    }
+  },
+
+  "session": {
+    "dmScope": "per-channel-peer",
+    "reset": {
+      "direct": { "mode": "daily", "atHour": 0 },
+      "group": { "mode": "idle", "idleMinutes": 60 }
+    }
+  },
+
+  "tools": {
+    "profile": "messaging",
+    "deny": [
+      "group:runtime",
+      "group:automation",
+      "sessions_spawn",
+      "sessions_send"
+    ],
+    "fs": {
+      "workspaceOnly": true
+    },
+    "exec": {
+      "security": "deny",
+      "ask": "always",
+      "applyPatch": {
+        "workspaceOnly": true
+      }
+    },
+    "elevated": {
+      "enabled": false
+    }
+  },
+
+  "agents": {
+    "defaults": {
+      "sandbox": {
+        "mode": "all",
+        "scope": "agent",
+        "workspaceAccess": "ro",
+        "docker": {
+          "readOnlyRoot": true,
+          "capDrop": ["ALL"],
+          "network": "none",
+          "pidsLimit": 256,
+          "memory": "512m"
+        }
+      }
+    },
+    "list": [
+      {
+        "id": "company-assistant",
+        "name": "社員アシスタント",
+        "default": true,
+        "skills": [],
+        "identity": {
+          "name": "アシスタント",
+          "instructions": "あなたは会社のAIアシスタントです。丁寧なビジネス日本語で対応してください。機密情報の取り扱いに細心の注意を払い、不明な点は正直に伝えてください。"
+        }
+      }
+    ]
+  },
+
+  "plugins": {
+    "allow": ["@openclaw/line"]
+  },
+
+  "channels": {
+    "slack": {
+      "enabled": true,
+      "mode": "socket",
+      "appToken": "CHANGE-ME-xapp-your-slack-app-token",
+      "botToken": "CHANGE-ME-xoxb-your-slack-bot-token",
+      "dmPolicy": "allowlist",
+      "allowFrom": [
+        "CHANGE-ME-slack-user-id-1",
+        "CHANGE-ME-slack-user-id-2"
+      ],
+      "groupPolicy": "allowlist",
+      "groups": {
+        "CHANGE-ME-slack-channel-id": {
+          "requireMention": true
+        },
+        "*": {
+          "requireMention": true
+        }
+      }
+    },
+    "line": {
+      "enabled": true,
+      "channelAccessToken": "CHANGE-ME-line-channel-access-token",
+      "channelSecret": "CHANGE-ME-line-channel-secret",
+      "dmPolicy": "pairing",
+      "groupPolicy": "allowlist",
+      "groups": {
+        "*": {
+          "requireMention": true
+        }
+      }
+    }
+  }
+}
